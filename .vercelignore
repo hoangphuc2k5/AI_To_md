@@ -1,0 +1,10 @@
+MinerU/
+.env
+.env.*
+.vercel/
+.venv/
+.venv-*/
+data/
+gateway/tests/
+scripts/
+run.py

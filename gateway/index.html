@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f2ed">
+  <title>MinerU | Document studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f3f2ed;
+      --white: #fffefa;
+      --ink: #182322;
+      --muted: #66716d;
+      --line: #d8d9d1;
+      --green: #c8f169;
+      --green-dark: #31533a;
+      --coral: #ed6a4e;
+      --mono: "DM Mono", Consolas, monospace;
+      --sans: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .topline { height: 5px; background: linear-gradient(90deg, var(--green) 0 33%, var(--coral) 33% 36%, var(--ink) 36%); }
+    .shell { width: min(1440px, 100%); margin: 0 auto; padding: 0 48px; }
+    header { height: 74px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 16px; }
+    .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; background: var(--ink); color: var(--green); font: 500 15px var(--mono); }
+    .brand-sub { color: var(--muted); font: 11px var(--mono); text-transform: uppercase; }
+    .service { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font: 11px var(--mono); text-transform: uppercase; }
+    .service-dot { width: 8px; height: 8px; border-radius: 50%; background: #a9afa8; }
+    .service[data-state="ready"] .service-dot { background: #64a768; box-shadow: 0 0 0 4px #64a76822; }
+    .service[data-state="error"] .service-dot { background: var(--coral); }
+    main { padding: 40px 0 56px; }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+    .eyebrow, .label { color: var(--muted); font: 11px var(--mono); letter-spacing: 0; text-transform: uppercase; }
+    h1 { margin: 9px 0 0; font-size: clamp(32px, 4vw, 48px); line-height: 1.04; letter-spacing: 0; font-weight: 600; }
+    .intro-mark { color: var(--coral); font: 15px var(--mono); padding-bottom: 5px; }
+    .workspace { display: grid; grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); min-height: 590px; }
+    .input-panel { padding: 26px 32px 28px 0; border-right: 1px solid var(--line); }
+    .output-panel { min-width: 0; padding: 26px 0 28px 32px; display: flex; flex-direction: column; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 17px; }
+    .step { color: var(--coral); font: 11px var(--mono); }
+    .dropzone { min-height: 222px; border: 1px dashed #aeb5aa; background: #f8f8f2; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 22px; cursor: pointer; transition: border-color .18s, background .18s, transform .18s; }
+    .dropzone:hover, .dropzone.dragging { border-color: var(--green-dark); background: #edf4de; }
+    .dropzone.dragging { transform: scale(.99); }
+    .upload-icon { width: 45px; height: 45px; display: grid; place-items: center; background: var(--green); color: var(--ink); margin-bottom: 14px; }
+    .upload-icon svg { width: 22px; height: 22px; }
+    .drop-title { font-size: 16px; font-weight: 600; }
+    .drop-sub { margin-top: 6px; color: var(--muted); font-size: 13px; }
+    .file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+    .file-row { display: none; align-items: center; gap: 12px; margin-top: 13px; padding: 12px; background: var(--white); border: 1px solid var(--line); }
+    .file-row.visible { display: flex; }
+    .file-symbol { width: 33px; height: 38px; display: grid; place-items: center; background: #e8ebe2; color: var(--green-dark); font: 9px var(--mono); text-transform: uppercase; }
+    .file-info { min-width: 0; flex: 1; }
+    .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+    .file-size { margin-top: 3px; color: var(--muted); font: 10px var(--mono); }
+    .icon-button { width: 36px; height: 36px; display: inline-grid; place-items: center; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+    .icon-button:hover { background: var(--green); border-color: var(--green); }
+    .icon-button svg { width: 16px; height: 16px; }
+    .settings { margin-top: 29px; }
+    .tier-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 11px; }
+    .tier-option { min-height: 42px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: var(--muted); font: 10px var(--mono); }
+    .tier-option:hover { border-color: var(--ink); color: var(--ink); }
+    .tier-option[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--green); }
+    .parse-button { width: 100%; min-height: 52px; display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding: 0 17px; border: 0; background: var(--green); font-weight: 700; cursor: pointer; transition: background .15s, transform .15s; }
+    .parse-button:hover:not(:disabled) { background: #b8e653; transform: translateY(-1px); }
+    .parse-button:disabled { cursor: wait; opacity: .65; }
+    .parse-button .arrow { font: 18px var(--mono); }
+    .privacy-note { margin-top: 13px; color: var(--muted); font: 10px/1.6 var(--mono); }
+    .error { display: none; margin-top: 14px; padding: 12px; border-left: 3px solid var(--coral); background: #fbe7e1; color: #703123; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+    .error.visible { display: block; }
+    .result-tools { display: flex; align-items: center; gap: 7px; }
+    .result-tools .icon-button { width: 34px; height: 34px; }
+    .tabbar { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--line); }
+    .tab { position: relative; padding: 0 0 12px; border: 0; background: none; color: var(--muted); cursor: pointer; font: 11px var(--mono); text-transform: uppercase; }
+    .tab[aria-selected="true"] { color: var(--ink); }
+    .tab[aria-selected="true"]::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--coral); content: ""; }
+    .result-content { position: relative; flex: 1; min-height: 420px; margin-top: 15px; background: var(--white); border: 1px solid #e4e4dc; overflow: hidden; }
+    .placeholder { height: 100%; min-height: 420px; display: grid; place-items: center; padding: 28px; color: #929b94; text-align: center; }
+    .placeholder-inner { max-width: 240px; }
+    .placeholder-glyph { margin-bottom: 13px; color: #bdc5b9; font: 36px var(--mono); }
+    .placeholder p { margin: 0; font: 12px/1.7 var(--mono); }
+    .busy { display: none; position: absolute; inset: 0; z-index: 2; align-items: center; justify-content: center; flex-direction: column; gap: 14px; background: #fffefaed; }
+    .busy.visible { display: flex; }
+    .spinner { width: 26px; height: 26px; border: 2px solid #d8ded0; border-top-color: var(--green-dark); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .busy-text { color: var(--muted); font: 11px var(--mono); }
+    .markdown, .metadata { display: none; width: 100%; height: 100%; min-height: 420px; margin: 0; padding: 22px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: #34413d; font: 12px/1.75 var(--mono); }
+    .markdown.visible, .metadata.visible { display: block; }
+    .output-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 43px; color: var(--muted); font: 10px var(--mono); }
+    .output-footer strong { color: var(--green-dark); font-weight: 500; }
+    .toast { position: fixed; right: 24px; bottom: 24px; padding: 12px 16px; background: var(--ink); color: var(--green); font: 11px var(--mono); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s; }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    footer { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0 21px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; }
+    :focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+    @media (max-width: 780px) {
+      .shell { padding: 0 22px; }
+      main { padding-top: 29px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+      .input-panel { padding: 22px 0 25px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .output-panel { padding: 23px 0 22px; }
+      .result-content, .placeholder, .markdown, .metadata { min-height: 330px; }
+      .intro { align-items: start; flex-direction: column; gap: 11px; }
+      .intro-mark { padding: 0; }
+    }
+    @media (max-width: 420px) {
+      .shell { padding: 0 16px; }
+      header { height: 64px; }
+      .brand-sub { display: none; }
+      .service { font-size: 9px; }
+      h1 { font-size: 34px; }
+      .tier-options { grid-template-columns: repeat(2, 1fr); }
+      .output-footer { align-items: flex-start; flex-direction: column; padding: 10px 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topline"></div>
+  <div class="shell">
+    <header>
+      <div class="brand"><span class="brand-mark">M/</span><span>MinerU</span><span class="brand-sub">Document studio</span></div>
+      <div class="service" id="service" data-state="checking" aria-live="polite"><span class="service-dot"></span><span id="service-label">Đang kết nối</span></div>
+    </header>
+
+    <main>
+      <div class="intro">
+        <div><div class="eyebrow">Document intelligence / 01</div><h1>Biến tài liệu<br>thành Markdown.</h1></div>
+        <div class="intro-mark">PDF · OFFICE · IMAGE</div>
+      </div>
+
+      <div class="workspace">
+        <section class="input-panel" aria-labelledby="input-title">
+          <div class="panel-head"><span class="label" id="input-title">Tài liệu đầu vào</span><span class="step">01 / 02</span></div>
+          <input class="file-input" id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.bmp,.tif,.tiff,.webp,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf,.odt,.ods,.odp,.epub,.ofd,.html,.htm,.mhtml,.mht,.csv,.tsv">
+          <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Chọn hoặc thả tài liệu vào đây">
+            <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></div>
+            <div class="drop-title">Thả tài liệu vào đây</div>
+            <div class="drop-sub">hoặc nhấn để duyệt tệp</div>
+          </div>
+          <div class="file-row" id="file-row">
+            <div class="file-symbol" id="file-symbol">PDF</div>
+            <div class="file-info"><div class="file-name" id="file-name"></div><div class="file-size" id="file-size"></div></div>
+            <button class="icon-button" id="remove-file" type="button" title="Bỏ tệp" aria-label="Bỏ tệp">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+
+          <div class="settings">
+            <div class="label">Chất lượng xử lý</div>
+            <div class="tier-options" role="group" aria-label="Chọn chất lượng xử lý">
+              <button class="tier-option" type="button" data-tier="flash" aria-pressed="true">Flash</button>
+              <button class="tier-option" type="button" data-tier="basic" aria-pressed="false">Basic</button>
+              <button class="tier-option" type="button" data-tier="standard" aria-pressed="false">Standard</button>
+            </div>
+          </div>
+
+          <button class="parse-button" id="parse-button" type="button" disabled><span id="parse-label">Chọn tài liệu để bắt đầu</span><span class="arrow" aria-hidden="true">↗</span></button>
+          <div class="privacy-note">Tệp được gửi trực tiếp đến dịch vụ MinerU đã cấu hình.</div>
+          <div class="error" id="error" role="alert"></div>
+        </section>
+
+        <section class="output-panel" aria-labelledby="output-title">
+          <div class="panel-head"><span class="label" id="output-title">Kết quả chuyển đổi</span><div class="result-tools">
+            <button class="icon-button" id="copy-button" type="button" title="Sao chép nội dung" aria-label="Sao chép nội dung" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button>
+            <button class="icon-button" id="download-button" type="button" title="Tải Markdown" aria-label="Tải Markdown" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 17v2.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V17"/></svg></button>
+          </div></div>
+          <div class="tabbar" role="tablist" aria-label="Dữ liệu kết quả">
+            <button class="tab" id="tab-markdown" type="button" role="tab" aria-selected="true">Markdown</button>
+            <button class="tab" id="tab-metadata" type="button" role="tab" aria-selected="false">Metadata</button>
+          </div>
+          <div class="result-content" aria-live="polite">
+            <div class="placeholder" id="placeholder"><div class="placeholder-inner"><div class="placeholder-glyph">{ md }</div><p>Kết quả sẽ xuất hiện tại đây</p></div></div>
+            <div class="busy" id="busy"><span class="spinner" aria-hidden="true"></span><span class="busy-text" id="busy-text">Đang xử lý tài liệu</span></div>
+            <pre class="markdown" id="markdown"></pre>
+            <pre class="metadata" id="metadata"></pre>
+          </div>
+          <div class="output-footer"><span id="result-file">Chưa có kết quả</span><span id="result-stats"></span></div>
+        </section>
+      </div>
+    </main>
+    <footer><span>MinerU / Local gateway</span><span>Document parsing interface</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const input = document.querySelector("#file-input");
+    const dropzone = document.querySelector("#dropzone");
+    const fileRow = document.querySelector("#file-row");
+    const parseButton = document.querySelector("#parse-button");
+    const parseLabel = document.querySelector("#parse-label");
+    const errorBox = document.querySelector("#error");
+    const busy = document.querySelector("#busy");
+    const markdownView = document.querySelector("#markdown");
+    const metadataView = document.querySelector("#metadata");
+    const placeholder = document.querySelector("#placeholder");
+    const copyButton = document.querySelector("#copy-button");
+    const downloadButton = document.querySelector("#download-button");
+    let selectedFile = null;
+    let resultData = null;
+    let activeTab = "markdown";
+    let selectedTier = "flash";
+
+    function formatBytes(size) {
+      if (size < 1024) return `${size} B`;
+      if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+      return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    }
+
+    function selectFile(file) {
+      selectedFile = file || null;
+      errorBox.classList.remove("visible");
+      if (!selectedFile) {
+        fileRow.classList.remove("visible");
+        parseButton.disabled = true;
+        parseLabel.textContent = "Chọn tài liệu để bắt đầu";
+        return;
+      }
+      document.querySelector("#file-name").textContent = selectedFile.name;
+      document.querySelector("#file-size").textContent = formatBytes(selectedFile.size);
+      document.querySelector("#file-symbol").textContent = selectedFile.name.split(".").pop().slice(0, 5);
+      fileRow.classList.add("visible");
+      parseButton.disabled = false;
+      parseLabel.textContent = "Chuyển đổi tài liệu";
+    }
+
+    dropzone.addEventListener("click", () => input.click());
+    dropzone.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); input.click(); }
+    });
+    input.addEventListener("change", () => selectFile(input.files[0]));
+    document.querySelector("#remove-file").addEventListener("click", () => { input.value = ""; selectFile(null); });
+    for (const eventName of ["dragenter", "dragover"]) {
+      dropzone.addEventListener(eventName, event => { event.preventDefault(); dropzone.classList.add("dragging"); });
+    }
+    for (const eventName of ["dragleave", "drop"]) {
+      dropzone.addEventListener(eventName, event => { event.preventDefault(); dropzone.classList.remove("dragging"); });
+    }
+    dropzone.addEventListener("drop", event => selectFile(event.dataTransfer.files[0]));
+
+    document.querySelectorAll(".tier-option").forEach(button => {
+      button.addEventListener("click", () => {
+        selectedTier = button.dataset.tier;
+        document.querySelectorAll(".tier-option").forEach(option => option.setAttribute("aria-pressed", String(option === button)));
+      });
+    });
+
+    function showTab(tab) {
+      activeTab = tab;
+      const hasResult = resultData !== null;
+      document.querySelector("#tab-markdown").setAttribute("aria-selected", String(tab === "markdown"));
+      document.querySelector("#tab-metadata").setAttribute("aria-selected", String(tab === "metadata"));
+      markdownView.classList.toggle("visible", hasResult && tab === "markdown");
+      metadataView.classList.toggle("visible", hasResult && tab === "metadata");
+      placeholder.style.display = hasResult ? "none" : "grid";
+      copyButton.title = tab === "markdown" ? "Sao chép Markdown" : "Sao chép metadata";
+      copyButton.setAttribute("aria-label", copyButton.title);
+    }
+    document.querySelector("#tab-markdown").addEventListener("click", () => showTab("markdown"));
+    document.querySelector("#tab-metadata").addEventListener("click", () => showTab("metadata"));
+
+    function notify(message) {
+      const toast = document.querySelector("#toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      window.setTimeout(() => toast.classList.remove("visible"), 1800);
+    }
+
+    parseButton.addEventListener("click", async () => {
+      if (!selectedFile) return;
+      errorBox.classList.remove("visible");
+      parseButton.disabled = true;
+      parseLabel.textContent = "Đang xử lý...";
+      busy.classList.add("visible");
+      document.querySelector("#busy-text").textContent = `MinerU đang xử lý bằng tier ${selectedTier}`;
+      const started = performance.now();
+      const form = new FormData();
+      form.append("file", selectedFile);
+      form.append("tier", selectedTier);
+      try {
+        const response = await fetch("/api/mineru/convert", { method: "POST", body: form });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const detail = typeof body.detail === "string" ? body.detail : body.detail?.message || JSON.stringify(body.detail || body);
+          throw new Error(detail || `Yêu cầu thất bại (${response.status})`);
+        }
+        resultData = body;
+        markdownView.textContent = body.markdown || "";
+        metadataView.textContent = JSON.stringify(body.metadata || {}, null, 2);
+        showTab(activeTab);
+        copyButton.disabled = false;
+        downloadButton.disabled = false;
+        document.querySelector("#result-file").textContent = body.metadata?.source?.filename || selectedFile.name;
+        const elapsed = body.metadata?.processing_time_ms ?? Math.round(performance.now() - started);
+        document.querySelector("#result-stats").innerHTML = `<strong>Hoàn tất</strong> / ${(elapsed / 1000).toFixed(1)} s / ${formatBytes(new Blob([body.markdown || ""]).size)}`;
+      } catch (error) {
+        errorBox.textContent = error.message || "Không thể xử lý tài liệu.";
+        errorBox.classList.add("visible");
+      } finally {
+        busy.classList.remove("visible");
+        parseButton.disabled = !selectedFile;
+        parseLabel.textContent = selectedFile ? "Chuyển đổi tài liệu" : "Chọn tài liệu để bắt đầu";
+      }
+    });
+
+    copyButton.addEventListener("click", async () => {
+      if (!resultData) return;
+      const text = activeTab === "markdown" ? resultData.markdown : JSON.stringify(resultData.metadata || {}, null, 2);
+      try { await navigator.clipboard.writeText(text); notify("Đã sao chép"); }
+      catch { notify("Trình duyệt không cho phép sao chép"); }
+    });
+
+    downloadButton.addEventListener("click", () => {
+      if (!resultData) return;
+      const filename = resultData.metadata?.source?.filename || "document";
+      const stem = filename.replace(/\.[^.]+$/, "") || "document";
+      const blob = new Blob([resultData.markdown || ""], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${stem}.md`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    fetch("/health").then(response => {
+      if (!response.ok) throw new Error("offline");
+      return response.json();
+    }).then(() => {
+      document.querySelector("#service").dataset.state = "ready";
+      document.querySelector("#service-label").textContent = "MinerU sẵn sàng";
+    }).catch(() => {
+      document.querySelector("#service").dataset.state = "error";
+      document.querySelector("#service-label").textContent = "Không kết nối được";
+    });
+  </script>
+</body>
+</html>
