@@ -17,7 +17,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -89,6 +89,19 @@ class Settings:
                 if item.strip()
             ),
         )
+
+
+def demo_ui_path() -> Path:
+    candidates = (
+        Path(__file__).resolve().with_name("index.html"),
+        Path(__file__).resolve().parent.parent / "public" / "index.html",
+        Path.cwd() / "gateway" / "index.html",
+        Path.cwd() / "public" / "index.html",
+    )
+    for path in candidates:
+        if path.is_file():
+            return path
+    raise FileNotFoundError("Demo UI file gateway/index.html was not found")
 
 
 def _origin(url: str) -> tuple[str, str, int] | None:
@@ -373,8 +386,9 @@ def create_app(
             raise HTTPException(status_code=503, detail=config.mineru_config_error)
 
     @app.get("/", include_in_schema=False)
-    async def demo_ui() -> FileResponse:
-        return FileResponse(Path(__file__).with_name("index.html"), media_type="text/html")
+    @app.get("/index.html", include_in_schema=False)
+    async def demo_ui() -> HTMLResponse:
+        return HTMLResponse(demo_ui_path().read_text(encoding="utf-8"))
 
     @app.get("/health")
     async def health() -> dict[str, str]:

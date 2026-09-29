@@ -27,6 +27,7 @@ settings = replace(
     max_file_size_mb=min(settings.max_file_size_mb, 4),
     processing_timeout_seconds=min(settings.processing_timeout_seconds, 240),
     max_response_bytes=4_000_000,
+    include_structured_content=False,
 )
 
 app = create_app(settings)

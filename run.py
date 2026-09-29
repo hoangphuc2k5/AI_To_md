@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import os
 import shutil
 import subprocess
@@ -84,6 +83,15 @@ def install_dependencies() -> None:
         )
 
 
+def sync_demo_ui() -> None:
+    source = ROOT / "gateway" / "index.html"
+    public_ui = ROOT / "public" / "index.html"
+    if not source.is_file():
+        raise RuntimeError("Demo UI is missing: gateway/index.html")
+    public_ui.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, public_ui)
+
+
 def mineru_url() -> str:
     configured_url = os.getenv("MINERU_API_URL")
     if configured_url:
@@ -114,6 +122,24 @@ def wait_for_mineru(process: subprocess.Popen[bytes], base_url: str) -> None:
     raise TimeoutError(f"MinerU did not become healthy within {timeout} seconds.")
 
 
+def wait_for_gateway(process: subprocess.Popen[bytes], demo_url: str) -> None:
+    timeout = int(os.getenv("GATEWAY_STARTUP_TIMEOUT_SECONDS", "60"))
+    deadline = time.monotonic() + timeout
+    print(f"Waiting for demo UI at {demo_url} ...", flush=True)
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(f"Gateway exited during startup (exit code {process.returncode}).")
+        request = urllib.request.Request(demo_url, method="GET")
+        try:
+            with urllib.request.urlopen(request, timeout=3) as response:
+                body = response.read().decode("utf-8", errors="replace")
+                if response.status == 200 and "MinerU | Document studio" in body:
+                    return
+        except (urllib.error.URLError, TimeoutError):
+            time.sleep(0.5)
+    raise TimeoutError(f"Demo UI did not become available within {timeout} seconds.")
+
+
 def stop_process(process: subprocess.Popen[bytes] | None, name: str) -> None:
     if process is None or process.poll() is not None:
         return
@@ -129,6 +155,7 @@ def stop_process(process: subprocess.Popen[bytes] | None, name: str) -> None:
 def main() -> None:
     os.chdir(ROOT)
     load_env()
+    sync_demo_ui()
     install_dependencies()
 
     mineru_port = os.getenv("MINERU_PORT", "8000")
@@ -190,6 +217,7 @@ def main() -> None:
 
         demo_url = f"http://127.0.0.1:{gateway_port}/"
         docs_url = f"http://127.0.0.1:{gateway_port}/docs"
+        wait_for_gateway(gateway_process, demo_url)
         print(f"Demo UI: {demo_url}", flush=True)
         print(f"API docs: {docs_url}", flush=True)
         print("Press Ctrl+C to stop both services.", flush=True)

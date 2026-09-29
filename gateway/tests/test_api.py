@@ -14,11 +14,22 @@ def test_demo_ui_is_served_at_root(tmp_path: Path) -> None:
     )
     with TestClient(app) as client:
         response = client.get("/")
+        alias = client.get("/index.html")
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "MinerU | Document studio" in response.text
     assert "/api/mineru/convert" in response.text
+    assert alias.status_code == 200
+    assert alias.text == response.text
+
+
+def test_vercel_public_ui_matches_gateway_ui() -> None:
+    root = Path(__file__).resolve().parents[2]
+    gateway_ui = (root / "gateway" / "index.html").read_text(encoding="utf-8")
+    public_ui = (root / "public" / "index.html").read_text(encoding="utf-8")
+    assert public_ui == gateway_ui
+    assert "MinerU | Document studio" in public_ui
 
 
 def test_ui_remains_available_without_mineru_configuration(tmp_path: Path) -> None:
