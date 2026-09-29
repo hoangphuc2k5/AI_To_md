@@ -7,6 +7,17 @@ from fastapi.testclient import TestClient
 from gateway.app import Settings, create_app
 
 
+def test_settings_use_writable_vercel_paths(monkeypatch) -> None:
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("TEMP_DIR", raising=False)
+    monkeypatch.delenv("OUTPUT_DIR", raising=False)
+
+    settings = Settings.from_env()
+
+    assert settings.temp_dir == Path("/tmp/mineru-gateway-tmp")
+    assert settings.output_dir == Path("/tmp/mineru-gateway-output")
+
+
 def test_demo_ui_is_served_at_root(tmp_path: Path) -> None:
     app = create_app(
         Settings(temp_dir=tmp_path / "temp", output_dir=tmp_path / "output"),

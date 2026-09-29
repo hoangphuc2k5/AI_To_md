@@ -71,6 +71,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
+        is_vercel = os.getenv("VERCEL") == "1"
+        temp_dir_default = "/tmp/mineru-gateway-tmp" if is_vercel else "data/gateway-tmp"
+        output_dir_default = "/tmp/mineru-gateway-output" if is_vercel else "data/output"
         return cls(
             mineru_api_url=os.getenv("MINERU_API_URL", cls.mineru_api_url).rstrip("/"),
             mineru_api_key=os.getenv("MINERU_API_KEY", ""),
@@ -79,8 +82,8 @@ class Settings:
             max_file_size_mb=int(os.getenv("MAX_FILE_SIZE_MB", "50")),
             max_concurrent_requests=int(os.getenv("MAX_CONCURRENT_REQUESTS", "1")),
             poll_interval_seconds=float(os.getenv("POLL_INTERVAL_SECONDS", "1")),
-            temp_dir=Path(os.getenv("TEMP_DIR", "data/gateway-tmp")),
-            output_dir=Path(os.getenv("OUTPUT_DIR", "data/output")),
+            temp_dir=Path(os.getenv("TEMP_DIR", temp_dir_default)),
+            output_dir=Path(os.getenv("OUTPUT_DIR", output_dir_default)),
             cors_origins=tuple(
                 item.strip()
                 for item in os.getenv(
