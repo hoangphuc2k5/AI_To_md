@@ -172,6 +172,7 @@
           <div class="panel-head"><span class="label" id="output-title">Kết quả chuyển đổi</span><div class="result-tools">
             <button class="icon-button" id="copy-button" type="button" title="Sao chép nội dung" aria-label="Sao chép nội dung" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg></button>
             <button class="icon-button" id="download-button" type="button" title="Tải Markdown" aria-label="Tải Markdown" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 17v2.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V17"/></svg></button>
+            <button class="icon-button" id="clear-button" type="button" title="Xóa kết quả" aria-label="Xóa kết quả" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
           </div></div>
           <div class="tabbar" role="tablist" aria-label="Dữ liệu kết quả">
             <button class="tab" id="tab-markdown" type="button" role="tab" aria-selected="true">Markdown</button>
@@ -190,7 +191,6 @@
     <footer><span>MinerU / Local gateway</span><span>Document parsing interface</span></footer>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
   <script>
     const input = document.querySelector("#file-input");
     const dropzone = document.querySelector("#dropzone");
@@ -204,8 +204,8 @@
     const placeholder = document.querySelector("#placeholder");
     const copyButton = document.querySelector("#copy-button");
     const downloadButton = document.querySelector("#download-button");
+    const clearButton = document.querySelector("#clear-button");
     let selectedFile = null;
-    let resultData = null;
     let activeTab = "markdown";
     let selectedTier = "flash";
 
@@ -255,7 +255,7 @@
 
     function showTab(tab) {
       activeTab = tab;
-      const hasResult = resultData !== null;
+      const hasResult = markdownView.textContent !== "" || metadataView.textContent !== "";
       document.querySelector("#tab-markdown").setAttribute("aria-selected", String(tab === "markdown"));
       document.querySelector("#tab-metadata").setAttribute("aria-selected", String(tab === "metadata"));
       markdownView.classList.toggle("visible", hasResult && tab === "markdown");
@@ -292,15 +292,18 @@
           const detail = typeof body.detail === "string" ? body.detail : body.detail?.message || JSON.stringify(body.detail || body);
           throw new Error(detail || `Yêu cầu thất bại (${response.status})`);
         }
-        resultData = body;
         markdownView.textContent = body.markdown || "";
         metadataView.textContent = JSON.stringify(body.metadata || {}, null, 2);
         showTab(activeTab);
         copyButton.disabled = false;
         downloadButton.disabled = false;
+        clearButton.disabled = false;
         document.querySelector("#result-file").textContent = body.metadata?.source?.filename || selectedFile.name;
         const elapsed = body.metadata?.processing_time_ms ?? Math.round(performance.now() - started);
         document.querySelector("#result-stats").innerHTML = `<strong>Hoàn tất</strong> / ${(elapsed / 1000).toFixed(1)} s / ${formatBytes(new Blob([body.markdown || ""]).size)}`;
+        selectedFile = null;
+        input.value = "";
+        fileRow.classList.remove("visible");
       } catch (error) {
         errorBox.textContent = error.message || "Không thể xử lý tài liệu.";
         errorBox.classList.add("visible");
@@ -312,23 +315,38 @@
     });
 
     copyButton.addEventListener("click", async () => {
-      if (!resultData) return;
-      const text = activeTab === "markdown" ? resultData.markdown : JSON.stringify(resultData.metadata || {}, null, 2);
+      const text = activeTab === "markdown" ? markdownView.textContent : metadataView.textContent;
       try { await navigator.clipboard.writeText(text); notify("Đã sao chép"); }
       catch { notify("Trình duyệt không cho phép sao chép"); }
     });
 
     downloadButton.addEventListener("click", () => {
-      if (!resultData) return;
-      const filename = resultData.metadata?.source?.filename || "document";
+      const filename = document.querySelector("#result-file").textContent || "document";
       const stem = filename.replace(/\.[^.]+$/, "") || "document";
-      const blob = new Blob([resultData.markdown || ""], { type: "text/markdown;charset=utf-8" });
+      const blob = new Blob([markdownView.textContent], { type: "text/markdown;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `${stem}.md`;
       link.click();
       URL.revokeObjectURL(url);
+    });
+
+    clearButton.addEventListener("click", () => {
+      selectedFile = null;
+      input.value = "";
+      markdownView.textContent = "";
+      metadataView.textContent = "";
+      fileRow.classList.remove("visible");
+      errorBox.classList.remove("visible");
+      document.querySelector("#result-file").textContent = "Chưa có kết quả";
+      document.querySelector("#result-stats").textContent = "";
+      copyButton.disabled = true;
+      downloadButton.disabled = true;
+      clearButton.disabled = true;
+      parseButton.disabled = true;
+      parseLabel.textContent = "Chọn tài liệu để bắt đầu";
+      showTab("markdown");
     });
 
     fetch("/health").then(response => {

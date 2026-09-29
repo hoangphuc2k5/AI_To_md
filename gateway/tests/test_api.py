@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import tempfile
 
 import httpx
 from fastapi.testclient import TestClient
@@ -16,6 +17,25 @@ def test_settings_use_writable_vercel_paths(monkeypatch) -> None:
 
     assert settings.temp_dir == Path("/tmp/mineru-gateway-tmp")
     assert settings.output_dir == Path("/tmp/mineru-gateway-output")
+
+
+def test_settings_default_outside_data_dir(monkeypatch) -> None:
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.delenv("TEMP_DIR", raising=False)
+    monkeypatch.delenv("OUTPUT_DIR", raising=False)
+
+    settings = Settings.from_env()
+
+    assert settings.temp_dir == Path(tempfile.gettempdir()) / "mineru-gateway-tmp"
+    assert settings.output_dir == Path(tempfile.gettempdir()) / "mineru-gateway-output"
+
+
+def test_create_app_does_not_create_temp_dir_until_upload(tmp_path: Path) -> None:
+    temp_dir = tmp_path / "temp"
+
+    create_app(Settings(temp_dir=temp_dir, output_dir=tmp_path / "output"))
+
+    assert not temp_dir.exists()
 
 
 def test_demo_ui_is_served_at_root(tmp_path: Path) -> None:
@@ -41,6 +61,9 @@ def test_vercel_public_ui_matches_gateway_ui() -> None:
     public_ui = (root / "public" / "index.html").read_text(encoding="utf-8")
     assert public_ui == gateway_ui
     assert "MinerU | Document studio" in public_ui
+    assert 'id="clear-button"' in public_ui
+    assert 'id="copy-button"' in public_ui
+    assert 'id="download-button"' in public_ui
 
 
 def test_ui_remains_available_without_mineru_configuration(tmp_path: Path) -> None:

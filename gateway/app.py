@@ -31,8 +31,8 @@ class Settings:
     max_file_size_mb: int = 50
     max_concurrent_requests: int = 1
     poll_interval_seconds: float = 1
-    temp_dir: Path = Path("data/gateway-tmp")
-    output_dir: Path = Path("data/output")
+    temp_dir: Path = Path(tempfile.gettempdir()) / "mineru-gateway-tmp"
+    output_dir: Path = Path(tempfile.gettempdir()) / "mineru-gateway-output"
     include_structured_content: bool = True
     max_response_bytes: int | None = None
     cors_origins: tuple[str, ...] = ("http://localhost:3000", "http://localhost:5173")
@@ -72,8 +72,16 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         is_vercel = os.getenv("VERCEL") == "1"
-        temp_dir_default = "/tmp/mineru-gateway-tmp" if is_vercel else "data/gateway-tmp"
-        output_dir_default = "/tmp/mineru-gateway-output" if is_vercel else "data/output"
+        temp_dir_default = (
+            Path("/tmp/mineru-gateway-tmp")
+            if is_vercel
+            else Path(tempfile.gettempdir()) / "mineru-gateway-tmp"
+        )
+        output_dir_default = (
+            Path("/tmp/mineru-gateway-output")
+            if is_vercel
+            else Path(tempfile.gettempdir()) / "mineru-gateway-output"
+        )
         return cls(
             mineru_api_url=os.getenv("MINERU_API_URL", cls.mineru_api_url).rstrip("/"),
             mineru_api_key=os.getenv("MINERU_API_KEY", ""),
@@ -195,6 +203,7 @@ async def _stage_upload(upload: UploadFile, settings: Settings) -> tuple[Path, i
     digest = hashlib.sha256()
     size = 0
     suffix = Path(upload.filename or "document").suffix.lower()
+    settings.temp_dir.mkdir(parents=True, exist_ok=True)
     file_descriptor, temp_name = tempfile.mkstemp(
         prefix="mineru-", suffix=suffix, dir=settings.temp_dir
     )
@@ -361,7 +370,6 @@ def create_app(
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     config = settings or Settings.from_env()
-    config.temp_dir.mkdir(parents=True, exist_ok=True)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
