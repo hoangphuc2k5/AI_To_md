@@ -21,6 +21,31 @@ def test_demo_ui_is_served_at_root(tmp_path: Path) -> None:
     assert "/api/mineru/convert" in response.text
 
 
+def test_ui_remains_available_without_mineru_configuration(tmp_path: Path) -> None:
+    config_error = "Set MINERU_API_URL to the public HTTPS base URL of your MinerU service."
+    app = create_app(
+        Settings(
+            mineru_config_error=config_error,
+            temp_dir=tmp_path / "temp",
+            output_dir=tmp_path / "output",
+        ),
+        httpx.MockTransport(lambda request: httpx.Response(500)),
+    )
+    with TestClient(app) as client:
+        page = client.get("/")
+        health = client.get("/health")
+        conversion = client.post(
+            "/api/mineru/convert",
+            files={"file": ("report.pdf", b"pdf bytes", "application/pdf")},
+        )
+
+    assert page.status_code == 200
+    assert health.status_code == 503
+    assert health.json()["detail"] == config_error
+    assert conversion.status_code == 503
+    assert conversion.json()["detail"] == config_error
+
+
 def test_convert_runs_v1_flow_and_returns_markdown_and_metadata(
     tmp_path: Path, caplog
 ) -> None:

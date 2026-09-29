@@ -67,6 +67,7 @@ class Settings:
             ".tsv",
         }
     )
+    mineru_config_error: str | None = None
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -367,12 +368,17 @@ def create_app(
         allow_headers=["Content-Type", "Authorization"],
     )
 
+    def ensure_mineru_configured() -> None:
+        if config.mineru_config_error:
+            raise HTTPException(status_code=503, detail=config.mineru_config_error)
+
     @app.get("/", include_in_schema=False)
     async def demo_ui() -> FileResponse:
         return FileResponse(Path(__file__).with_name("index.html"), media_type="text/html")
 
     @app.get("/health")
     async def health() -> dict[str, str]:
+        ensure_mineru_configured()
         response = await _json_request(
             app.state.mineru_client,
             "GET",
@@ -386,6 +392,7 @@ def create_app(
         file: UploadFile = File(...),
         tier: str = Form("standard"),
     ) -> dict[str, Any]:
+        ensure_mineru_configured()
         filename = Path(file.filename or "").name
         suffix = Path(filename).suffix.lower()
         logger.info("Received file '%s' (tier=%s)", filename, tier)
